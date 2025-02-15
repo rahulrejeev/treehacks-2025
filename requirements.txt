@@ -5,3 +5,4 @@ google-generativeai
 Pillow
 mediapipe 
 numpy
+streamlit-webrtc>=0.47.0
