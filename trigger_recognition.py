@@ -22,7 +22,7 @@ genai.configure(api_key=GOOGLE_API_KEY)
 print("Available models:", genai.list_models())
 
 # Initialize Gemini Vision model with the correct version
-model = genai.GenerativeModel('gemini-2.0-flash')  # Updated model name
+model = genai.GenerativeModel('gemini-2.0-flash-001')  # Updated model name
 
 # Predefined list of triggers
 TRIGGER_LIST = ['iphone', 'waterbottle', 'chairs']
@@ -44,7 +44,7 @@ def classify_frame(frame):
         
         # More specific prompt for better object detection
         prompt = f"""
-        Look at this image carefully. You are an object detection system.
+        Look at this image carefully. You are an object detection system. Make sure whole object is visible.
         Your task is to check if any of these specific objects are present: {', '.join(TRIGGER_LIST)}.
         
         Respond in this exact format:
@@ -64,15 +64,20 @@ def classify_frame(frame):
             top_k=32,
         )
         
+        # Start timing the Gemini API call
+        start_time = time.perf_counter()
         response = model.generate_content(
             contents=[prompt, Image.open(byte_stream)],
             generation_config=generation_config
         )
-        
-        # Make sure the response is complete
+        # Wait for response to complete
         response.resolve()
+        end_time = time.perf_counter()
         
-        # Debug print
+        # Log the elapsed time
+        print(f"Gemini API call took {end_time - start_time:.4f} seconds")
+        
+        # Debug print the raw response
         print(f"Raw Gemini response: {response.text}")
         
         # Parse the response

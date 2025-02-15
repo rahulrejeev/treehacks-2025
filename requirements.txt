@@ -3,3 +3,5 @@ python-dotenv
 opencv-python
 google-generativeai
 Pillow
+mediapipe 
+numpy
