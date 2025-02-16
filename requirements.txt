@@ -9,5 +9,7 @@ numpy
 imutils
 dlib
 pyttsx3
+boto3
 terra-python
 streamlit-webrtc>=0.47.0
+elevenlabs

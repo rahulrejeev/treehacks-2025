@@ -11,6 +11,8 @@ import streamlit as st
 from imutils import face_utils
 from helpers import eye_aspect_ratio, average_point
 import logging
+from elevenlabs import stream
+from elevenlabs.client import ElevenLabs
 
 logger = logging.Logger('logger')
 logger.setLevel(logging.DEBUG)
@@ -35,16 +37,21 @@ try:
     AWS_SECRET_ACCESS_KEY=os.getenv('AWS_SECRET_ACCESS_KEY')
     AWS_REGION=os.getenv('AWS_REGION')
     AWS_BUCKET_NAME=os.getenv('AWS_BUCKET_NAME')
+    ELEVEN_LABS_API_KEY=os.getenv('ELEVEN_LABS_KEY')
+    VOICE_ID=os.getenv('VOICE_ID')
     s3 = boto3.client('s3', 
                       aws_access_key_id=AWS_ACCESS_KEY, 
                       aws_secret_access_key=AWS_SECRET_ACCESS_KEY, 
                       region_name=AWS_REGION) 
+    elevenlabs_client = ElevenLabs(api_key=ELEVEN_LABS_API_KEY)
+
 except Exception as e:
-    raise Exception(e)
+    raise e
 
 # Config
 gemini_client =  genai.Client(api_key=GOOGLE_API_KEY)
 TIME_INTERVAL = 5  # seconds
+ELEVEN_LABS_API = f"https://api.elevenlabs.ai/v1/text-to-speech/{VOICE_ID}"
 
 # Video config
 # Load dlib's face detector and landmark predictor.
@@ -70,6 +77,7 @@ def initialize():
         }
     st.session_state.last_update = time.time()
     st.session_state.current_script = "Begin by focusing on your breath. Let your body relax..."
+
     # TODO: Better default script
 
 
@@ -225,14 +233,14 @@ def call_google_gemini(prompt):
             contents=prompt,
             model="models/gemini-2.0-flash"
         )
-        if response and response.result:
+        if response and response.text:
             logger.info("Gemini API call successful.")
-            logger.info(f"Response: {response.result}")
-            return response.result
+            logger.info(f"Response: {response.text}")
+            return response.text
         else:
             logger.error("No text generated. Check the Gemini API response. f{response}")
     except Exception as e:
-        return f"Error calling Gemini: {str(e)}"
+        logger.error(f"Error calling Gemini: {str(e)}")
   
 def update_scipt():
     state_metrics = st.session_state.metrics
@@ -273,9 +281,19 @@ def update_scipt():
     st.session_state.last_update = time.time()
 
 def render_frame(rgb_frame):
-    FRAME_WINDOW.image(rgb_frame, channels="RGB")
     cv2.putText(rgb_frame, st.session_state.current_script, (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    FRAME_WINDOW.image(rgb_frame, channels="RGB")
+
+def render_audio():
+    audio_stream = elevenlabs_client.text_to_speech(
+        st.session_state.current_script,
+        voice_id=VOICE_ID,
+        model_id="eleven_multilingual_v2"
+    )
+    stream(audio_stream)
+
+
 
 def main_loop():
     questions = 0

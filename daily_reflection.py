@@ -71,7 +71,7 @@ chat_session = model.start_chat(
     {
       "role": "user",
       "parts": [
-        "Tell me what the most important information and people are in the video. ",
+        "We will be making a recap of the day for a windddown meditation session. We want to recap all the things that happened today. So recap what happened ha"
       ],
     },
   ]
