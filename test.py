@@ -2,7 +2,7 @@ import boto3
 from dotenv import load_dotenv
 import os
 import json
-from time import time
+from time import sleep
 
 load_dotenv()
 try:
@@ -275,7 +275,7 @@ def run_mock():
         )
         status_code = response.get('ResponseMetadata', {}).get('HTTPStatusCode')
         print(f"Uploaded {filename} to bucket '{AWS_BUCKET_NAME}' with status code: {status_code}")
-        time.sleep(40)
+        sleep(40)
         print("Waiting for 60 seconds...")
 
 if __name__ == "__main__":
