@@ -10,7 +10,7 @@ import av
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import datetime
 import base64
-from streamlit_js_eval import streamlit_js_eval
+
 
 # --- Helper Functions ---
 def eye_aspect_ratio(eye):
