@@ -1,8 +1,13 @@
 streamlit
 python-dotenv
 opencv-python
-google-generativeai
+google-genai
 Pillow
+flask
 mediapipe 
 numpy
+imutils
+dlib
+pyttsx3
+terra-python
 streamlit-webrtc>=0.47.0
