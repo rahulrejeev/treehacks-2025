@@ -13,6 +13,7 @@ from helpers import eye_aspect_ratio, average_point
 import logging
 from elevenlabs import stream
 from elevenlabs.client import ElevenLabs
+import base64
 
 logger = logging.Logger('logger')
 logger.setLevel(logging.DEBUG)
@@ -291,18 +292,66 @@ def render_audio():
         voice_id=VOICE_ID,
         model_id="eleven_multilingual_v2"
     )
+
     stream(audio_stream)
+
+def save_audio_locally(filename="output.mp3"):
+    audio_stream = elevenlabs_client.text_to_speech.convert_as_stream(
+        text=st.session_state.current_script,
+        voice_id=VOICE_ID,
+        model_id="eleven_multilingual_v2"
+    )
+    # Collect the stream into a bytearray
+    audio_bytes = bytearray()
+    for chunk in audio_stream:
+        if isinstance(chunk, int):
+            audio_bytes.append(chunk)
+        elif isinstance(chunk, bytes):
+            audio_bytes.extend(chunk)
+        else:
+            st.error(f"Unexpected type in audio stream: {type(chunk)}")
+    # Write the collected bytes to a file.
+    with open(filename, "wb") as f:
+        f.write(audio_bytes)
+
+audio_placeholder = st.empty()
+
+
+def play_audio(local_file: str):
+    """Renders an auto-playing HTML audio element using a local file."""
+    # Read and encode the local audio file.
+    with open(local_file, "rb") as f:
+        data = f.read()
+    b64_data = base64.b64encode(data).decode("utf-8")
+    
+    audio_html = f"""
+    <audio id="audio-player" autoplay controls>
+      <source src="data:audio/mp3;base64,{b64_data}" type="audio/mp3">
+      Your browser does not support the audio element.
+    </audio>
+    <script>
+      var audio = document.getElementById("audio-player");
+      audio.play();
+    </script>
+    """
+    audio_placeholder.markdown(audio_html, unsafe_allow_html=True)
+
+# Simulated list of audio files (replace with your dynamically generated URLs)
 
 
 
 def main_loop():
     questions = 0
+    audio_index = 0
+
     while not run_live:
         pass
     
     initialize()
     while questions < 5:
-        render_audio()
+        save_audio_locally("output.mp3")
+        play_audio("output.mp3")
+        # render_audio()
         while time.time() - st.session_state.last_update < TIME_INTERVAL:
             frame, rgb_frame = update_camera()
             render_frame(rgb_frame)
