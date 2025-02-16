@@ -272,7 +272,8 @@ def build_combined_prompt(terra_payload, vlm_payload):
         "- **Releasing Tension**: 'What are you ready to let go of?'\n"
         "- **Setting an Intention**: 'What intention would you like to carry forward?'\n"
         "- **Closing Reflection**: 'What does your heart need to hear?'\n\n"
-        "Use a calm and supportive tone, guiding the user through the session."
+"""Use a calm and supportive tone, guiding the user through the session. EVERYTHING IS YOU WRITE WILL BE SPOKEN ALOUD TO THE USER. SO WRITE LIKE YOU ARE SPEAKING TO THEM DIRECTLY. DO NOT WRITE TIME STAMPS LIKE (Minute 1-3: Grounding in the Present) or adverbs like **(slowly)**. Just write the content of the meditation.
+"""
     )
 
     logger.info("Built combined prompt.")
