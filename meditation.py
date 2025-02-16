@@ -286,7 +286,7 @@ def render_frame(rgb_frame):
     FRAME_WINDOW.image(rgb_frame, channels="RGB")
 
 def render_audio():
-    audio_stream = elevenlabs_client.text_to_speech(
+    audio_stream = elevenlabs_client.text_to_speech.convert_as_stream(
         st.session_state.current_script,
         voice_id=VOICE_ID,
         model_id="eleven_multilingual_v2"
