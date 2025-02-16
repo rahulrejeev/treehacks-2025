@@ -302,6 +302,7 @@ def main_loop():
     
     initialize()
     while questions < 5:
+        render_audio()
         while time.time() - st.session_state.last_update < TIME_INTERVAL:
             frame, rgb_frame = update_camera()
             render_frame(rgb_frame)
