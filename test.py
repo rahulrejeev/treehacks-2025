@@ -275,7 +275,7 @@ def run_mock():
         )
         status_code = response.get('ResponseMetadata', {}).get('HTTPStatusCode')
         print(f"Uploaded {filename} to bucket '{AWS_BUCKET_NAME}' with status code: {status_code}")
-        time.sleep(60)
+        time.sleep(40)
         print("Waiting for 60 seconds...")
 
 if __name__ == "__main__":
