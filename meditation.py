@@ -52,7 +52,7 @@ except Exception as e:
 
 # Config
 gemini_client =  genai.Client(api_key=GOOGLE_API_KEY)
-TIME_INTERVAL = 5  # seconds
+TIME_INTERVAL = 60  # seconds
 ELEVEN_LABS_API = f"https://api.elevenlabs.ai/v1/text-to-speech/{VOICE_ID}"
 
 # Video config
