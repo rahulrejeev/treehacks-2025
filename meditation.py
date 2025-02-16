@@ -232,7 +232,8 @@ def get_terra_from_s3():
 
 def build_combined_prompt(terra_payload, vlm_payload):
     """
-    Combines Terra biometric data and visual cues into a structured meditation prompt.
+    Combines Terra biometric data and visual cues into a structured meditation prompt,
+    with additional observations if the data suggests focus needs to be re-established.
     """
     prompt = (
         "Analyze the following biometric and visual data for an AI-guided meditation session.\n"
@@ -280,6 +281,21 @@ def build_combined_prompt(terra_payload, vlm_payload):
     prompt += "### Terra Biometric Data:\n" + json.dumps(terra_payload, indent=2) + "\n\n"
     prompt += "### Visual Cues Data:\n" + json.dumps(vlm_payload, indent=2) + "\n\n"
 
+    # --- Conditional Observations Based on Visual Cues ---
+    observations = ""
+    if vlm_payload["blink_count"] > 6:
+        observations += "- I notice you're blinking frequently. Try to keep your eyes relaxed.\n"
+    # (A low focus score is a positive sign, so no suggestion is needed.)
+    if vlm_payload.get("avg_tension", 0) > 0:  # Adjust threshold as needed.
+        observations += "- Your tension appears elevated. Relax your muscles and take a deep breath.\n"
+    if vlm_payload["total_head_movement"] > 350:
+        observations += "- Your head movement is quite large; please try to remain still.\n"
+    if vlm_payload["micro_expression_events"] > 35:
+        observations += "- There are frequent micro-expressions. Reflect on a happy thought and let go of any stress.\n"
+
+    if observations:
+        prompt += "### Observations:\n" + observations + "\n"
+
     prompt += (
         "Provide a holistic summary of the individual's stress levels, relaxation state, and personalized recommendations for meditation.\n\n"
         "**Meditation Guidance**\n"
@@ -293,8 +309,8 @@ def build_combined_prompt(terra_payload, vlm_payload):
         "- **Releasing Tension**: 'What are you ready to let go of?'\n"
         "- **Setting an Intention**: 'What intention would you like to carry forward?'\n"
         "- **Closing Reflection**: 'What does your heart need to hear?'\n\n"
-"""Use a calm and supportive tone, guiding the user through the session. EVERYTHING IS YOU WRITE WILL BE SPOKEN ALOUD TO THE USER. SO WRITE LIKE YOU ARE SPEAKING TO THEM DIRECTLY. DO NOT WRITE TIME STAMPS LIKE (Minute 1-3: Grounding in the Present) or adverbs like **(slowly)**. Just write the content of the meditation.
-You will return a SINGLE QUESTION AT A TIME, FOLLOWING THIS TEMPLATE. IN PARTICULAR, YOU ARE GIVEN THE PROMPTS YOU HAVE PREVIOUSLY ASKED, AND MUST PROVIDE ONLY THE NEXT QUESTION. You should consider the previous questions you have asked to ensure that the questions you ask logically follows the previous ones and consider the user's emotional state. Each question should take about 45 seconds to read aloud. Where relevant, acknowledge your observations about how the user responded or reacted to your previous question. Ask follow-ups where necessary. Do not overly-ask follow-ups or over-acknowledge. Here are the questions you have already asked:
+        """Use a calm and supportive tone, guiding the user through the session. EVERYTHING YOU WRITE WILL BE SPOKEN ALOUD TO THE USER. SO WRITE LIKE YOU ARE SPEAKING TO THEM DIRECTLY. DO NOT WRITE TIME STAMPS LIKE (Minute 1-3: Grounding in the Present) or adverbs like **(slowly)**. Just write the content of the meditation.
+You will return a SINGLE QUESTION AT A TIME, FOLLOWING THIS TEMPLATE. IN PARTICULAR, YOU ARE GIVEN THE PROMPTS YOU HAVE PREVIOUSLY ASKED, AND MUST PROVIDE ONLY THE NEXT QUESTION. You should consider the previous questions you have asked to ensure that the questions you ask logically follows the previous ones and consider the user's emotional state. If blinks over 6 suggest to focus on keeping eyes relaxed. If focus score is low that is a good thing. If high tension, tell to relax muscles perhaps. If head movement over 350, tell the user to sit still. If micro expressions are over 35 tell to relax and think about happy thoughts. Also consider how this data has changed with each prompt. Each question should take about 45 seconds to read aloud. Where relevant, acknowledge your observations about how the user responded or reacted to your previous question. Ask follow-ups where necessary. Do not overly-ask follow-ups or over-acknowledge. Here are the questions you have already asked:
 """ + "\n".join(prompts_asked)) + "\n\n Here are the past visual cue payloads: " + "\n".join(visual_cues_history) + "\n\n Here are the past telemetry payloads: " + "\n".join(telemetry_history)
 
     logger.info("Built combined prompt.")
