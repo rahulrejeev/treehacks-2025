@@ -167,34 +167,31 @@ def get_terra_from_s3():
     logger.info("Fetching Terra payloads from S3...")
     # Paginator to list all objects in the bucket.
     paginator = s3.get_paginator("list_objects_v2")
-    pages = paginator.paginate(Bucket=AWS_BUCKET_NAME)
+    page = paginator.paginate(Bucket=AWS_BUCKET_NAME, MaxKeys=1)[0]
     json_lst = []
     keys_to_delete = [] 
     logger.info(f"Got paginator")
 
     # Iterate through all pages of objects.
-    logger.info(type(pages))
-    logger.info(pages)
-    for page in pages:
-        logging.info(f'starting new page')
-        if "Contents" in page:
-            for obj in page["Contents"]:
-                key = obj["Key"]
-                # Process only .json files
-                if key.endswith(".json"):
-                    try:
-                        # Fetch object content.
-                        response = s3.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
-                        content = response['Body'].read().decode('utf-8')
-                        # Attempt to parse JSON.
-                        json_data = json.loads(content)
-                        json_lst.append(json_data)
-                        logger.info(f"Fetched JSON from: {key}")
-                    except Exception as e:
-                        logger.error(f"Error processing {key}: {e}")
-                    
-                    # Add key to deletion list.
-                    keys_to_delete.append(key)
+    logger.info(type(page))
+    logger.info(page)
+    for obj in page["Contents"]:
+        key = obj["Key"]
+        # Process only .json files
+        if key.endswith(".json"):
+            try:
+                # Fetch object content.
+                response = s3.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
+                content = response['Body'].read().decode('utf-8')
+                # Attempt to parse JSON.
+                json_data = json.loads(content)
+                json_lst.append(json_data)
+                logger.info(f"Fetched JSON from: {key}")
+            except Exception as e:
+                logger.error(f"Error processing {key}: {e}")
+            
+            # Add key to deletion list.
+            keys_to_delete.append(key)
 
     logger.info(f"Found {len(json_lst)} JSON payloads.")
     logger.info(f"Deleting {len(keys_to_delete)} objects...")
@@ -207,6 +204,7 @@ def get_terra_from_s3():
         except Exception as e:
             logger.error(f"Error deleting {key}: {e}")
     return json_lst[0]
+
 
 def build_combined_prompt(terra_payload, vlm_payload):
     """
