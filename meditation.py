@@ -167,43 +167,46 @@ def get_terra_from_s3():
     logger.info("Fetching Terra payloads from S3...")
     # Paginator to list all objects in the bucket.
     paginator = s3.get_paginator("list_objects_v2")
-    page = paginator.paginate(Bucket=AWS_BUCKET_NAME, MaxKeys=1)[0]
-    json_lst = []
-    keys_to_delete = [] 
-    logger.info(f"Got paginator")
+    try:
+        page = [page for page in paginator.paginate(Bucket=AWS_BUCKET_NAME, MaxKeys=1)][0]
+        json_lst = []
+        keys_to_delete = [] 
+        logger.info(f"Got paginator")
 
-    # Iterate through all pages of objects.
-    logger.info(type(page))
-    logger.info(page)
-    for obj in page["Contents"]:
-        key = obj["Key"]
-        # Process only .json files
-        if key.endswith(".json"):
+        # Iterate through all pages of objects.
+        logger.info(type(page))
+        logger.info(page)
+        for obj in page["Contents"]:
+            key = obj["Key"]
+            # Process only .json files
+            if key.endswith(".json"):
+                try:
+                    # Fetch object content.
+                    response = s3.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
+                    content = response['Body'].read().decode('utf-8')
+                    # Attempt to parse JSON.
+                    json_data = json.loads(content)
+                    json_lst.append(json_data)
+                    logger.info(f"Fetched JSON from: {key}")
+                except Exception as e:
+                    logger.error(f"Error processing {key}: {e}")
+                
+                # Add key to deletion list.
+                keys_to_delete.append(key)
+
+        logger.info(f"Found {len(json_lst)} JSON payloads.")
+        logger.info(f"Deleting {len(keys_to_delete)} objects...")
+
+        # Delete the JSON files in batches of up to 1000 objects.
+        for key in keys_to_delete:
             try:
-                # Fetch object content.
-                response = s3.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
-                content = response['Body'].read().decode('utf-8')
-                # Attempt to parse JSON.
-                json_data = json.loads(content)
-                json_lst.append(json_data)
-                logger.info(f"Fetched JSON from: {key}")
+                delete_response = s3.delete_object(Bucket=AWS_BUCKET_NAME, Key=key)
+                logger.info(f"Deleted {key} with response: {delete_response}")
             except Exception as e:
-                logger.error(f"Error processing {key}: {e}")
-            
-            # Add key to deletion list.
-            keys_to_delete.append(key)
-
-    logger.info(f"Found {len(json_lst)} JSON payloads.")
-    logger.info(f"Deleting {len(keys_to_delete)} objects...")
-
-    # Delete the JSON files in batches of up to 1000 objects.
-    for key in keys_to_delete:
-        try:
-            delete_response = s3.delete_object(Bucket=AWS_BUCKET_NAME, Key=key)
-            logger.info(f"Deleted {key} with response: {delete_response}")
-        except Exception as e:
-            logger.error(f"Error deleting {key}: {e}")
-    return json_lst[0]
+                logger.error(f"Error deleting {key}: {e}")
+        return json_lst[0]
+    except Exception as e:
+        logger.error(f"Error fetching Terra payloads: {e}")
 
 
 def build_combined_prompt(terra_payload, vlm_payload):
