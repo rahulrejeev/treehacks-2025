@@ -109,7 +109,6 @@ Based on your facial expressions and movements, the system updates the guided me
 """)
 run_live = st.checkbox("Start Live Feed")
 FRAME_WINDOW = st.image([])  # Placeholder for the video feed
-audio_placeholder = st.empty()
 camera = cv2.VideoCapture(0)
 
 # --- Main Live Feed Loop ---
@@ -387,6 +386,7 @@ def handle_audio():
       audio.play();
     </script>
     """
+    audio_placeholder = st.empty()
     audio_placeholder.markdown(audio_html, unsafe_allow_html=True)
 
 
