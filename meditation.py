@@ -210,18 +210,70 @@ def get_terra_from_s3():
 
 def build_combined_prompt(terra_payload, vlm_payload):
     """
-    Combines the Terra and VLM payloads into a single prompt for Gemini.
+    Combines Terra biometric data and visual cues into a structured meditation prompt.
     """
-    # TODO: Prompts
     prompt = (
-        "Analyze the following biometric data and visual cues for an AI-guided meditation session.\n"
-        "Extract insights from heart rate, oxygen levels, body measurements, nervousness, fidgeting, and any other patterns.\n\n"
+        "Analyze the following biometric and visual data for an AI-guided meditation session.\n"
+        "Assess relaxation and stress indicators based on physiological and behavioral cues.\n\n"
+        
+        "## Physiological Data\n"
+        "**1. Heart Rate Variability (HRV):**\n"
+        "- Effective: HRV > 65ms (Indicates relaxation, parasympathetic activity)\n"
+        "- Adverse: HRV < 50ms (Indicates stress, sympathetic activation)\n\n"
+
+        "**2. Respiratory Rate (RR):**\n"
+        "- Effective: 4–6 breaths/min (Deep, rhythmic breathing)\n"
+        "- Adverse: >12 breaths/min (Hyperventilation, stress response)\n\n"
+
+        "**3. Electrodermal Activity (EDA):**\n"
+        "- Effective: SCL < 5μS (Low emotional arousal)\n"
+        "- Adverse: SCL spike > 1μS (Emotional trigger or stress response)\n\n"
+
+        "**4. Blood Volume Pulse via PPG:**\n"
+        "- Effective: Stable waveform, augmentation index < 10%\n"
+        "- Adverse: Erratic dicrotic notch (Vascular stress, tension)\n\n"
+
+        "**5. Body Temperature:**\n"
+        "- Effective: ±0.5°C from baseline (Thermal stability)\n"
+        "- Adverse: Drop >1°C (Stress-induced vasoconstriction)\n\n"
+
+        "## Visual Data from Video\n"
+        "**1. Facial Muscle Tension:**\n"
+        "- Effective: Relaxed jaw, neutral lips, softened forehead\n"
+        "- Adverse: Furrowed brows, lip tightening, asymmetrical nasolabial folds\n\n"
+
+        "**2. Eye Movement & Blink Rate:**\n"
+        "- Effective: Closed eyes, stable gaze (≤2° deviation)\n"
+        "- Adverse: Frequent blinking (>20 blinks/min), rapid saccades\n\n"
+
+        "**3. Head Movement & Postural Sway:**\n"
+        "- Effective: Minimal head motion (≤1 cm displacement over 5 mins)\n"
+        "- Adverse: Frequent adjustments, shoulder shrugging\n\n"
+
+        "**4. Micro-Expression Recognition:**\n"
+        "- Effective: Smooth, neutral expressions\n"
+        "- Adverse: Sudden brow tension, lip pursing, nostril flaring\n\n"
     )
 
     prompt += "### Terra Biometric Data:\n" + json.dumps(terra_payload, indent=2) + "\n\n"
     prompt += "### Visual Cues Data:\n" + json.dumps(vlm_payload, indent=2) + "\n\n"
-    
-    prompt += "Provide a holistic summary of the individual's stress levels, relaxation state, and recommendations for an optimal guided meditation session."
+
+    prompt += (
+        "Provide a holistic summary of the individual's stress levels, relaxation state, and personalized recommendations for meditation.\n\n"
+        "**Meditation Guidance**\n"
+        "Your role: Act as a meditation guide. Avoid analysis; instead, use the data to create a structured session. Use the template below:\n\n"
+
+        "**Framework for a 20-Minute Meditation**\n"
+        "- **Grounding in the Present**: 'What do you notice right now?'\n"
+        "- **Emotional Check-In**: 'What emotion feels most present?'\n"
+        "- **Reflection on the Day**: 'What moment from today stands out?'\n"
+        "- **Gratitude Exploration**: 'What is one thing you're grateful for?'\n"
+        "- **Releasing Tension**: 'What are you ready to let go of?'\n"
+        "- **Setting an Intention**: 'What intention would you like to carry forward?'\n"
+        "- **Closing Reflection**: 'What does your heart need to hear?'\n\n"
+        "Use a calm and supportive tone, guiding the user through the session."
+    )
+
     logger.info("Built combined prompt.")
 
     return prompt
