@@ -28,7 +28,9 @@ handler.setFormatter(formatter)
 
 # Add the handler to your logger
 logger.addHandler(handler)
-
+prompts_asked = []
+visual_cues_history = []
+telemetry_history = []
 
 load_dotenv()
 
@@ -52,7 +54,7 @@ except Exception as e:
 
 # Config
 gemini_client =  genai.Client(api_key=GOOGLE_API_KEY)
-TIME_INTERVAL = 5  # seconds
+TIME_INTERVAL = 30  # seconds
 ELEVEN_LABS_API = f"https://api.elevenlabs.ai/v1/text-to-speech/{VOICE_ID}"
 
 # Video config
@@ -73,15 +75,16 @@ def extract_readable_script(text):
     # Regex explanation:
     # \*\*.*?\*\*   -> Matches any text enclosed in ** (non-greedy)
     # \(Minute\s*\d+\s*-\s*\d+\) -> Matches minute markers like (Minute 1-3)
-    pattern = r'\*\*.*?\*\*|\(Minute\s*\d+\s*-\s*\d+\)'
+    # pattern = r'\*\*.*?\*\*|\(Minute\s*\d+\s*-\s*\d+\)'
     
-    # Remove the matched patterns from the text.
-    cleaned_text = re.sub(pattern, '', text)
+    # # Remove the matched patterns from the text.
+    # cleaned_text = re.sub(pattern, '', text)
     
-    # Optionally, remove extra blank lines or surrounding whitespace.
-    # This splits the text by lines, strips them, and rejoins non-empty lines.
-    cleaned_lines = [line.strip() for line in cleaned_text.splitlines() if line.strip()]
-    return "\n".join(cleaned_lines)
+    # # Optionally, remove extra blank lines or surrounding whitespace.
+    # # This splits the text by lines, strips them, and rejoins non-empty lines.
+    # cleaned_lines = [line.strip() for line in cleaned_text.splitlines() if line.strip()]
+    # return "\n".join(cleaned_lines)
+    return text
 
 def initialize():
     st.session_state.metrics = {
@@ -96,9 +99,9 @@ def initialize():
             'micro_expression_events': 0
         }
     st.session_state.last_update = time.time()
-    st.session_state.current_script = "Begin by focusing on your breath. Let your body relax..."
+    st.session_state.current_script = "Alright, let's begin. Find a comfortable position, either sitting or lying down, and gently close your eyes. Take a deep breath in, and as you exhale, let go of any tension you might be holding. Now, what do you notice right now? What sensations are present in your body, and what sounds do you hear around you? Just observe without judgment."
+    prompts_asked.append(st.session_state.current_script)
 
-    # TODO: Better default script
 
 
 # --- Streamlit Layout ---
@@ -291,8 +294,8 @@ def build_combined_prompt(terra_payload, vlm_payload):
         "- **Setting an Intention**: 'What intention would you like to carry forward?'\n"
         "- **Closing Reflection**: 'What does your heart need to hear?'\n\n"
 """Use a calm and supportive tone, guiding the user through the session. EVERYTHING IS YOU WRITE WILL BE SPOKEN ALOUD TO THE USER. SO WRITE LIKE YOU ARE SPEAKING TO THEM DIRECTLY. DO NOT WRITE TIME STAMPS LIKE (Minute 1-3: Grounding in the Present) or adverbs like **(slowly)**. Just write the content of the meditation.
-"""
-    )
+You will return a SINGLE QUESTION AT A TIME, FOLLOWING THIS TEMPLATE. IN PARTICULAR, YOU ARE GIVEN THE PROMPTS YOU HAVE PREVIOUSLY ASKED, AND MUST PROVIDE ONLY THE NEXT QUESTION. You should consider the previous questions you have asked to ensure that the questions you ask logically follows the previous ones and consider the user's emotional state. Each question should take about 45 seconds to read aloud. Where relevant, acknowledge your observations about how the user responded or reacted to your previous question. Ask follow-ups where necessary. Do not overly-ask follow-ups or over-acknowledge. Here are the questions you have already asked:
+""" + "\n".join(prompts_asked)) + "\n\n Here are the past visual cue payloads: " + "\n".join(visual_cues_history) + "\n\n Here are the past telemetry payloads: " + "\n".join(telemetry_history)
 
     logger.info("Built combined prompt.")
 
@@ -332,6 +335,7 @@ def update_scipt():
         "micro_expression_events": state_metrics['micro_expression_events'],
         "user_id": 1
     }
+    logger.info(f"Visual cues payload: {vlm_payload}")
     terra_json = get_terra_from_s3()
     prompt = build_combined_prompt(
             terra_payload=terra_json, 
@@ -339,6 +343,7 @@ def update_scipt():
     )
     gemini_result = call_google_gemini(prompt)
     st.session_state.current_script = extract_readable_script(gemini_result)
+    prompts_asked.append(st.session_state.current_script)
 
     # Reset metrics for the next interval.
     st.session_state.metrics = {
@@ -352,7 +357,6 @@ def update_scipt():
         'prev_eyebrow_position': None,
         'micro_expression_events': 0
     }
-    st.session_state.last_update = time.time()
 
 def render_frame(rgb_frame):
     cv2.putText(rgb_frame, st.session_state.current_script, (10, 30),
@@ -363,7 +367,8 @@ def handle_audio():
     audio_stream = elevenlabs_client.text_to_speech.convert_as_stream(
         text=st.session_state.current_script,
         voice_id=VOICE_ID,
-        model_id="eleven_multilingual_v2"
+        model_id="eleven_multilingual_v2",
+        optimize_streaming_latency=3
     )
 
     audio_bytes = bytearray()
@@ -398,8 +403,9 @@ def main_loop():
     
     initialize()
     while questions < 5:
+        curr = time.time()
         handle_audio()
-        while time.time() - st.session_state.last_update < TIME_INTERVAL:
+        while time.time() - curr < TIME_INTERVAL:
             frame, rgb_frame = update_camera()
             render_frame(rgb_frame)
             main(frame, rgb_frame)
