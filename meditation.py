@@ -14,6 +14,7 @@ import logging
 from elevenlabs import stream
 from elevenlabs.client import ElevenLabs
 import base64
+import re
 
 logger = logging.Logger('logger')
 logger.setLevel(logging.DEBUG)
@@ -64,6 +65,24 @@ if not os.path.exists(predictor_path):
 predictor = dlib.shape_predictor(predictor_path)
 
 # --- Session State Initialization ---
+def extract_readable_script(text):
+    """
+    Given a text string in the format with bold section titles and minute markers,
+    remove those formatting markers and return the clean script.
+    """
+    # Regex explanation:
+    # \*\*.*?\*\*   -> Matches any text enclosed in ** (non-greedy)
+    # \(Minute\s*\d+\s*-\s*\d+\) -> Matches minute markers like (Minute 1-3)
+    pattern = r'\*\*.*?\*\*|\(Minute\s*\d+\s*-\s*\d+\)'
+    
+    # Remove the matched patterns from the text.
+    cleaned_text = re.sub(pattern, '', text)
+    
+    # Optionally, remove extra blank lines or surrounding whitespace.
+    # This splits the text by lines, strips them, and rejoins non-empty lines.
+    cleaned_lines = [line.strip() for line in cleaned_text.splitlines() if line.strip()]
+    return "\n".join(cleaned_lines)
+
 def initialize():
     st.session_state.metrics = {
             'total_frames': 0,
@@ -319,7 +338,7 @@ def update_scipt():
             vlm_payload=vlm_payload,
     )
     gemini_result = call_google_gemini(prompt)
-    st.session_state.current_script = gemini_result    
+    st.session_state.current_script = extract_readable_script(gemini_result)
 
     # Reset metrics for the next interval.
     st.session_state.metrics = {
