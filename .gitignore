@@ -1,4 +1,4 @@
 # Ignore virtual environment directory
 venv/
 # Ignore recorded videos directory
-recorded_videos/
+recorded_videos/.env
